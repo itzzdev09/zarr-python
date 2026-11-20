@@ -435,6 +435,23 @@ async def test_nchunks_initialized(
         assert observed == expected
 
 
+@pytest.mark.parametrize("zarr_format", [2, 3])
+def test_nchunks_initialized_sibling_with_shared_name_prefix(zarr_format: ZarrFormat) -> None:
+    """
+    A sibling array whose name starts with this array's name ("lat" / "lat_bnds") must not
+    be counted or break the listing.
+    https://github.com/zarr-developers/zarr-python/issues/4645
+    """
+    group = zarr.open_group(MemoryStore(), mode="w", zarr_format=zarr_format)
+    lat = group.create_array("lat", shape=(4,), chunks=(2,), dtype="f8")
+    lat_bnds = group.create_array("lat_bnds", shape=(4, 2), chunks=(2, 2), dtype="f8")
+    lat_bnds[:] = 1.0
+    lat[:2] = 1.0
+    assert lat.nchunks_initialized == 1
+    assert lat_bnds.nchunks_initialized == 2
+    lat.info_complete()
+
+
 @pytest.mark.parametrize("path", ["", "foo"])
 @pytest.mark.parametrize(
     ("shape", "shard_shape", "chunk_shape"),

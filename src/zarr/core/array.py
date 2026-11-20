@@ -4120,8 +4120,11 @@ async def _shards_initialized(
     [nchunks_initialized][zarr.Array.nchunks_initialized]
 
     """
+    # A trailing "/" keeps stores that match the prefix as a plain string from also
+    # returning the keys of sibling nodes whose names start with this one (e.g. "lat_bnds").
+    path = array.store_path.path
     store_contents = [
-        x async for x in array.store_path.store.list_prefix(prefix=array.store_path.path)
+        x async for x in array.store_path.store.list_prefix(prefix=f"{path}/" if path else "")
     ]
     store_contents_relative = [
         _relativize_path(path=key, prefix=array.store_path.path)
